@@ -1,0 +1,111 @@
+package logLinter
+
+import (
+	"go/ast"
+	"go/token"
+	"go/types"
+	"strings"
+	"unicode"
+
+	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/analysis/passes/inspect"
+	"golang.org/x/tools/go/ast/inspector"
+)
+
+func NewAnalyzer() *analysis.Analyzer {
+	return &analysis.Analyzer{
+		Name:     "logLinter",
+		Doc:      "Check are logs right",
+		Run:      run,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	}
+}
+
+func run(pass *analysis.Pass) (interface{}, error) {
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+
+	nodeFilter := []ast.Node{
+		(*ast.CallExpr)(nil),
+	}
+
+	inspect.Preorder(nodeFilter, func(n ast.Node) {
+		call := n.(*ast.CallExpr)
+
+		if !isLogFunc(pass, call) {
+			return
+		}
+
+		if len(call.Args) == 0 {
+			return
+		}
+
+		message := extractMessage(call.Args[0])
+		if message == "" {
+			return
+		}
+
+		checkFirstLetter(pass, call, message)
+	})
+
+	return nil, nil
+}
+
+func isLogFunc(pass *analysis.Pass, call *ast.CallExpr) bool {
+	var funcName string
+	var sel *ast.SelectorExpr
+	var ok bool
+
+	if sel, ok = call.Fun.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	funcName = sel.Sel.Name
+
+	logFunctions := map[string]bool{
+		"Info": true, "Error": true, "Warn": true, "Debug": true, "Infof": true, "Errorf": true, "Warnf": true, "Debugf": true,
+	}
+
+	if !logFunctions[funcName] {
+		return false
+	}
+
+	switch t := pass.TypesInfo.TypeOf(sel.X).(type) {
+	case *types.Named:
+		if t.Obj().Pkg() != nil && t.Obj().Pkg().Path() == "log/slog" {
+			return true
+		}
+	case *types.Pointer:
+		if named, ok := t.Elem().(*types.Named); ok {
+			if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "go.uber.org/zap" {
+				return true
+			}
+		}
+	}
+
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "log" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func extractMessage(arg ast.Expr) string {
+	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+		return strings.Trim(lit.Value, "\"")
+	}
+
+	return ""
+}
+
+func checkFirstLetter(pass *analysis.Pass, call *ast.CallExpr, message string) {
+	if message == "" {
+		return
+	}
+
+	first := []rune(message)[0]
+
+	if unicode.IsLetter(first) && !unicode.IsLower(first) {
+		pass.Reportf(call.Pos(), "log message should start with big letter: %q", message)
+	}
+}
