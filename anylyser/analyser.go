@@ -5,7 +5,6 @@ import (
 	"go/token"
 	"go/types"
 	"strings"
-	"unicode"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -45,6 +44,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		checkFirstLetter(pass, call, message)
+
+		checkEnglish(pass, call, message)
+
+		checkSpecialChars(pass, call, message)
+
+		checkSensetive(pass, call, message)
 	})
 
 	return nil, nil
@@ -96,16 +101,4 @@ func extractMessage(arg ast.Expr) string {
 	}
 
 	return ""
-}
-
-func checkFirstLetter(pass *analysis.Pass, call *ast.CallExpr, message string) {
-	if message == "" {
-		return
-	}
-
-	first := []rune(message)[0]
-
-	if unicode.IsLetter(first) && !unicode.IsLower(first) {
-		pass.Reportf(call.Pos(), "log message should start with big letter: %q", message)
-	}
 }
