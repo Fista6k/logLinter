@@ -31,9 +31,41 @@ func checkEnglish(pass *analysis.Pass, call *ast.CallExpr, message string) {
 }
 
 func checkSpecialChars(pass *analysis.Pass, call *ast.CallExpr, message string) {
-	//not implemented yet
+	if containEmoji(message) {
+		pass.Reportf(call.Pos(), "log shouldn't contain any emojis: %q", message)
+	}
+
+	if strings.Contains(message, "...") {
+		pass.Reportf(call.Pos(), "log message shouldn't contain any '...': %q", message)
+	}
+
+	if strings.Contains(message, "!!!") {
+		pass.Reportf(call.Pos(), "log message shouldn't contain any '!!!': %q", message)
+	}
+
+	if containAnyPuncSymbols(message) {
+		pass.Reportf(call.Pos(), "log shouldn't contain any punkt symbols except '.' and ','", message)
+	}
+}
+
+func containEmoji(msg string) bool {
+	for _, r := range msg {
+		if unicode.Is(unicode.So, r) {
+			return true
+		}
+	}
+	return false
+}
+
+func containAnyPuncSymbols(msg string) bool {
+	for _, r := range msg {
+		if unicode.IsPunct(r) && r != '.' && r != ',' {
+			return true
+		}
+	}
+	return false
 }
 
 func checkSensetive(pass *analysis.Pass, call *ast.CallExpr, message string) {
-	//not implemented yet
+
 }
