@@ -8,6 +8,15 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+var sensitiveWords = []string{
+	"password",
+	"api_key",
+	"apikey",
+	"token",
+	"secret",
+	"auth",
+}
+
 func checkFirstLetter(pass *analysis.Pass, call *ast.CallExpr, message string) {
 	runes := []rune(strings.TrimSpace(message))
 	if len(runes) == 0 {
@@ -44,7 +53,7 @@ func checkSpecialChars(pass *analysis.Pass, call *ast.CallExpr, message string) 
 	}
 
 	if containAnyPuncSymbols(message) {
-		pass.Reportf(call.Pos(), "log shouldn't contain any punkt symbols except '.' and ','", message)
+		pass.Reportf(call.Pos(), "log shouldn't contain any punkt symbols except '.,:-': %q", message)
 	}
 }
 
@@ -59,13 +68,21 @@ func containEmoji(msg string) bool {
 
 func containAnyPuncSymbols(msg string) bool {
 	for _, r := range msg {
-		if unicode.IsPunct(r) && r != '.' && r != ',' {
+		if unicode.IsPunct(r) && r != '.' && r != ',' && r != ':' && r != '-' {
 			return true
 		}
 	}
 	return false
 }
 
-func checkSensetive(pass *analysis.Pass, call *ast.CallExpr, message string) {
-
+func checkSensitive(pass *analysis.Pass, call *ast.CallExpr, message string) {
+	lowerMsg := strings.ToLower(message)
+	if strings.Contains(lowerMsg, ":") || strings.Contains(lowerMsg, "=") {
+		for _, w := range sensitiveWords {
+			if strings.Contains(lowerMsg, w) {
+				pass.Reportf(call.Pos(), "log shouldn't contain any sensitive words: %q", message)
+				return
+			}
+		}
+	}
 }

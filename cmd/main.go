@@ -1,7 +1,7 @@
 package main
 
 import (
-	logLinter "github.com/Fista6k/anylyser"
+	logLinter "github.com/Fista6k/analyser"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 

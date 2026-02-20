@@ -11,6 +11,17 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
+var logFunctions = map[string]bool{
+	"Info":   true,
+	"Error":  true,
+	"Warn":   true,
+	"Debug":  true,
+	"Infof":  true,
+	"Errorf": true,
+	"Warnf":  true,
+	"Debugf": true,
+}
+
 func NewAnalyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:     "logLinter",
@@ -49,7 +60,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		checkSpecialChars(pass, call, message)
 
-		checkSensetive(pass, call, message)
+		checkSensitive(pass, call, message)
 	})
 
 	return nil, nil
@@ -65,12 +76,14 @@ func isLogFunc(pass *analysis.Pass, call *ast.CallExpr) bool {
 	}
 	funcName = sel.Sel.Name
 
-	logFunctions := map[string]bool{
-		"Info": true, "Error": true, "Warn": true, "Debug": true, "Infof": true, "Errorf": true, "Warnf": true, "Debugf": true,
-	}
-
 	if !logFunctions[funcName] {
 		return false
+	}
+
+	if obj, ok := pass.TypesInfo.ObjectOf(sel.X.(*ast.Ident)).(*types.PkgName); ok {
+		if obj.Imported().Path() == "log/slog" {
+			return true
+		}
 	}
 
 	switch t := pass.TypesInfo.TypeOf(sel.X).(type) {
@@ -96,8 +109,13 @@ func isLogFunc(pass *analysis.Pass, call *ast.CallExpr) bool {
 }
 
 func extractMessage(arg ast.Expr) string {
-	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-		return strings.Trim(lit.Value, "\"")
+	switch lit := arg.(type) {
+	case *ast.BasicLit:
+		if lit.Kind == token.STRING {
+			return strings.Trim(lit.Value, "\"")
+		}
+	case *ast.BinaryExpr:
+		return extractMessage(lit.X)
 	}
 
 	return ""
