@@ -44,7 +44,7 @@ Setup
 
 3. Copy new logLinter.so file into your project
 
-4. Add .golangci-lint.yml
+4. Add .golangci.yml
   ```
   version: "2"
 
@@ -64,3 +64,6 @@ Setup
   ```
   golangci-lint run
   ```
+
+Main problem
+- You need to have the same golangci-lint, go and go/tools versions to completely start it on your project
