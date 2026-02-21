@@ -40,44 +40,20 @@ func checkEnglish(pass *analysis.Pass, call *ast.CallExpr, message string) {
 }
 
 func checkSpecialChars(pass *analysis.Pass, call *ast.CallExpr, message string) {
-	if containEmoji(message) {
-		pass.Reportf(call.Pos(), "log shouldn't contain any emojis: %q", message)
-	}
-
 	if strings.Contains(message, "...") {
 		pass.Reportf(call.Pos(), "log message shouldn't contain any '...': %q", message)
+		return
 	}
 
 	if strings.Contains(message, "!!!") {
 		pass.Reportf(call.Pos(), "log message shouldn't contain any '!!!': %q", message)
+		return
 	}
-
-	if containAnyPuncSymbols(message) {
-		pass.Reportf(call.Pos(), "log shouldn't contain any punkt symbols except '.,:-': %q", message)
-	}
-}
-
-func containEmoji(msg string) bool {
-	for _, r := range msg {
-		if unicode.Is(unicode.So, r) {
-			return true
-		}
-	}
-	return false
-}
-
-func containAnyPuncSymbols(msg string) bool {
-	for _, r := range msg {
-		if unicode.IsPunct(r) && r != '.' && r != ',' && r != ':' && r != '-' {
-			return true
-		}
-	}
-	return false
 }
 
 func checkSensitive(pass *analysis.Pass, call *ast.CallExpr, message string) {
 	lowerMsg := strings.ToLower(message)
-	if strings.Contains(lowerMsg, ":") || strings.Contains(lowerMsg, "=") {
+	if strings.ContainsAny(lowerMsg, ":=") {
 		for _, w := range sensitiveWords {
 			if strings.Contains(lowerMsg, w) {
 				pass.Reportf(call.Pos(), "log shouldn't contain any sensitive words: %q", message)

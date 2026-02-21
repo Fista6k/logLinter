@@ -87,10 +87,6 @@ func isLogFunc(pass *analysis.Pass, call *ast.CallExpr) bool {
 	}
 
 	switch t := pass.TypesInfo.TypeOf(sel.X).(type) {
-	case *types.Named:
-		if t.Obj().Pkg() != nil && t.Obj().Pkg().Path() == "log/slog" {
-			return true
-		}
 	case *types.Pointer:
 		if named, ok := t.Elem().(*types.Named); ok {
 			if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "go.uber.org/zap" {
