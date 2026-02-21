@@ -1,4 +1,4 @@
-package logLinter
+package analyzer
 
 import (
 	"testing"
@@ -8,6 +8,7 @@ import (
 
 func TestLogLinter(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, NewAnalyzer(), "log-slog")
-	analysistest.Run(t, testdata, NewAnalyzer(), "zap")
+	analyzer := NewAnalyzer()
+	analysistest.Run(t, testdata, analyzer, "log-slog")
+	analysistest.Run(t, testdata, analyzer, "zap")
 }
