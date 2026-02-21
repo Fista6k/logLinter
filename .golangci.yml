@@ -3,9 +3,10 @@ version: "2"
 linters:
   enable:
     - loglinter
+
   settings:
     custom:
       loglinter:
-        path: ./cmd/logLinter/logLinter.exe
+        path: ./logLinter.so
         description: "Check logs"
         original-url: github.com/Fista6k/logLinter
